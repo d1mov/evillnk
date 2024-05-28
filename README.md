@@ -1,5 +1,5 @@
 # Overview
-Python GUI based tool to generate lnk files with a payload and decoy files embedded inside. It takes payload file and decoy file as input, converts them to xor encrypted bytes and append them at the end of the lnk file. Should work on any OS with Python3 and PyQt6 installed. However, I did my tests on Kali Linux 2024.1. 
+Python GUI based tool to generate lnk files with a payload and decoy files embedded inside. This is NOT an external payload stager! While I have seen many LNK files utilized to download external payloads, evillnk gets around this issue and takes lnk file capabilities to the next level by taking a payload file and decoy file as input, converts them to XOR encrypted bytes and append them at the end of the lnk file. Should work on any OS with Python3 and PyQt6 installed. However, I did my tests on Kali Linux 2024.1. 
 
 To be used for penetration testing or educational purposes only!
 
