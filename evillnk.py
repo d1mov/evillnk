@@ -1,5 +1,5 @@
 #!/usr/bin/python3
-#Coded by v1k (Radostin Dimov)
+#Coded by d1mov (Radostin Dimov)
 import pylnk3
 import subprocess
 import random
@@ -395,7 +395,7 @@ class MainWindow(QWidget):
         QMessageBox.about(self, "Homepage", "evillnk Github repo:\n\nhttps://github.com/d1mov/evillnk")
 
     def about(self):
-        QMessageBox.about(self, "About", "evillnk 1.1.1\n\nPython GUI based tool to generate lnk files with a payload and decoy files embedded inside.\nIt takes payload file and decoy file as input, converts them to xor encrypted bytes and append them at the end of the lnk file.\n\nTo be used for pentesting or educational purposes only.\n\nCoded by: v1k (Radostin Dimov)")
+        QMessageBox.about(self, "About", "evillnk 1.1.1\n\nPython GUI based tool to generate lnk files with a payload and decoy files embedded inside.\nIt takes payload file and decoy file as input, converts them to xor encrypted bytes and append them at the end of the lnk file.\n\nTo be used for pentesting or educational purposes only.\n\nCoded by: d1mov (Radostin Dimov)")
         
     def update_icon(self):
         icon_size = 75

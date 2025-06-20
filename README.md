@@ -18,7 +18,7 @@ Use it at your own risk!
 <details>
   <summary>See Screenshot</summary>
 
-![alt text](https://github.com/v1kkz/evillnk/blob/main/img/screenshot.png)
+![alt text](https://github.com/d1mov/evillnk/blob/main/img/screenshot.png)
 </details>
 
 See below video for a short PoC Demo (Recorded on 25 May 2024):
@@ -37,11 +37,9 @@ You can download the latest version of evillnk by cloning the GitHub repository:
 git clone https://github.com/d1mov/evillnk
 ```
 
-If you would like to run `evillnk` from anywhere in your system or access it through the Kali applications panel (08-Exploitation Tools) you can install it with the provided `install.sh` script:
+If you would like to install and run `evillnk` from anywhere in your system or access it through the Kali applications panel (03-Initial Access) you can install it with the provided `install.sh` script:
 ```
-cd evillnk
-chmod +x install.sh
-./install.sh
+sudo curl -sSL https://raw.githubusercontent.com/d1mov/evillnk/main/install.sh | bash
 ```
 
 # Notes/Issues
