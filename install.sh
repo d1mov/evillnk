@@ -57,7 +57,7 @@ Categories=kali-initial-access;kali-resource-development"
 
 echo "$DESKTOP_ENTRY" > /usr/share/applications/evillnk.desktop
 
-sudo ln -sf /usr/share/evillnk/evillnk.py /usr/bin/evillnk
+echo -e '#!/bin/bash\ncd /usr/share/evillnk\nexec python3 evillnk.py "$@"' | sudo tee /usr/bin/evillnk > /dev/null
 sudo chmod +x /usr/bin/evillnk
 
 echo "[*] Installation complete."
