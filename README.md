@@ -10,7 +10,7 @@ Use it at your own risk!
 - Embeds payload and decoy file inside the lnk file
 - Simple and easy to use GUI
 - 3 Different Payload Types: Executable, Dynamic-link library (dll), PowerShell Script
-- 6 Different display icons: DOC, TXT, JPG, ZIP, MP3, Folder
+- 8 Different display icons: DOC, PDF, TXT, JPG, ZIP, MP3, Video, Folder
 - XOR Dynamic Encryption
 - Spoofs File Description
 
