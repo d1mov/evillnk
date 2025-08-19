@@ -1,5 +1,5 @@
 # Overview
-Python GUI based tool to generate lnk files with a payload and decoy files embedded inside. This is NOT an external payload stager! While I have seen many LNK files utilized to download external payloads, evillnk gets around this issue and takes lnk file capabilities to the next level by taking a payload file and decoy file as input, converts them to XOR encrypted bytes and append them at the end of the lnk file. Both files are decrypted and fired on runtime. Should work on any OS with Python3 and PyQt6 installed. However, I did my tests on Kali Linux 2024.1.
+Python GUI based tool to generate lnk files with a payload and decoy files embedded inside. This is NOT an external payload stager! While I have seen many LNK files utilized to download external payloads, evillnk gets around this issue and takes lnk file capabilities to the next level by taking a payload file and decoy file as input, converts them to XOR encrypted bytes and append them at the end of the lnk file. Both files are decrypted and fired on runtime. Should work on any OS with Python3 and PyQt6 installed. However, I did my tests on Kali Linux 2025.2.
 
 To be used for penetration testing or educational purposes only!
 
@@ -12,6 +12,7 @@ Use it at your own risk!
 - 3 Different Payload Types: Executable, Dynamic-link library (dll), PowerShell Script
 - 8 Different display icons: DOC, PDF, TXT, JPG, ZIP, MP3, Video, Folder
 - XOR Dynamic Encryption
+- Support for external PowerShell obfuscation tools
 - Spoofs File Description
 
 # Preview
@@ -48,8 +49,11 @@ sudo curl -sSL https://raw.githubusercontent.com/d1mov/evillnk/main/install.sh |
 
 **Planned Updates**
 - Implement persistence feature
+- Implement sandbox evasion feature
 - Add more display icons
 - Fix numerous bugs by learning to program better, lol...
+
+**OPTIONAL:** To use the external powershell obfuscation feature, your external obfuscation tool must follow the syntax `tool targetfile`. For example a python-based powershell obfuscator and example.ps1 target script, should be obfuscated with the syntax: `./tool.py example.ps1` where the obfuscated script will be exported from **stdout**. I know that this approach isn’t the most convenient, but it is a working solution until I find a better method.
 
 # Disclaimer
 Usage of evillnk for attacking targets without prior mutual consent is illegal.
